@@ -7,7 +7,7 @@ program solovev
   use constants
   implicit none
   real*8::z_X,zeta_X,psi_h,delt_r,delt_z,delt_tht,psi,r_min,r_max,z_min,z_max,tht,r,z,zeta
-  real*8::Coe(1:4),x(3),psi_X,psi_p,multipol,AA(Nh,Nh),bb(Nh),c(Nh),temp1,temp2
+  real*8::Coe(1:4),x(3),psi_X,psi_p,multipol,AA(Nh,Nh),bb(Nh),c(1:Nh),temp1,temp2
   real*8::temp3,temp4,z_temp
   integer::i,j,k,ii,jj,start1,start2,finish1,finish2,finish3,start,finish
   real*8,dimension(1000,1000)::psi_t,RR,ZZ
@@ -86,20 +86,19 @@ program solovev
            enddo
            psi_t(i,j)=psi_p+psi_h
         endif
- !       write(2,*)r,z,psi_t(i,j)
+        write(2,*)r,z,psi_t(i,j)
      enddo
   enddo
   !!$OMP end do
   !!$OMP end parallel
 !close(2)
-open(2,file='psito.txt')
+open(2,file='psito_my.txt')
 do i=1,100
    do j=1,100
       write(2,*)RR(i,j),zz(i,j),psi_t(i,j)
    enddo
 enddo
 close(2)
-
 call system_clock(finish1)
 open(4,file='psitoso.txt')
   do i=1,100
@@ -172,7 +171,7 @@ open(7,file='psitoz0.txt')
               enddo
               psi_t(i,j)=psi_p+psi_h
         endif
-        write(7,*)r,z,psi_t(i,j)
+        write(7,*)r,z,psi_t(i,j)/psi_X
  !    enddo
   enddo
 close(7)
@@ -186,7 +185,7 @@ open(8,file='psitosoz0.txt')
         temp1=0.5*(b_con+c0_con)*R_con**2*z**2+c0_con*R_con*zeta*z**2
         temp2=0.5*(a_con-c0_con)*R_con**2.D0*zeta**2.D0
         psi_t(i,j)=temp1+temp2
-        write(8,*)r,z,psi_t(i,j)
+        write(8,*)r,z,psi_t(i,j)/psi_X
 !     enddo
   enddo
 close(8)
@@ -294,7 +293,7 @@ function multipol(n,r,z)
 if(n>0.D0)then
   do i=0,n/2-1
      if(i>0.D0)then
-        A=(n/2+1-i)*(n/2-i)/(i*(i-0.5D0))*A
+        A=-(n/2+1-i)*(n/2-i)/(i*(i-0.5D0))*A
      endif
      multipol=multipol+A*r**(n-2.D0*i)*z**(2.D0*i)
   enddo
@@ -320,6 +319,7 @@ subroutine calc_psi_p(r0,z0,psi_p)
         tht=(j*1.D0-0.5D0)*delt_tht
 !        tht=8*atan(1.D0)-(j*1.D0-0.5D0)*delt_tht
      Coe(1)=c0_con*R_con*(tan(tht))**2
+     !     Coe(2)=0.5*(b_con+c0_con)*(tan(tht))**2*R_con**2+0.5*(a_con-c0_con)*R_con**2
      Coe(2)=0.5*(b_con+c0_con)*(tan(tht))**2*R_con**2+0.5*(a_con-c0_con)*R_con**2
      Coe(3)=0
      Coe(4)=-psi
@@ -333,10 +333,10 @@ subroutine calc_psi_p(r0,z0,psi_p)
      k2=(4.D0*r0*r)/((r+r0)**2.D0+(z0-z)**2.D0+epsil)
    !!!!!!!!!!!!call 椭圆积分
      call ellipke(k2,1,Kk,Ek)
-     temp1=sqrt(r0*r)/(8.D0*atan(1.D0))*((2.D0-k2)*Kk-2.D0*Ek)/sqrt(k2)*(a_con*r+b_con*R_con**2/r**2.D0)
+     temp1=sqrt(r0*r)/(8.D0*atan(1.D0))*((2.D0-k2)*Kk-2.D0*Ek)/sqrt(k2)*(a_con+b_con*R_con**2/r**2.D0)
      temp2=(zeta**2.D0+z**2.D0)/(3.D0*c0_con*zeta*z**2.D0+(a_con-c0_con)*R_con*zeta**2+(b_con+c0_con)*R_con*z**2)
      psi_p=psi_p-temp1*temp2*delt_psi*delt_tht
-!     write(10,*)k,k2,Kk,Ek,r,z,psi_p
+ !    write(10,*)k,k2,Kk,Ek,r,z,psi_p
      enddo
   enddo
 !  close(10)
